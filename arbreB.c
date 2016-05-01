@@ -1,111 +1,98 @@
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 #include "arbreB.h"
 
-#define T_MAX 2
+#define K 2
+#define KEY_MAX 2*K-1
 
 
-typedef struct noeudB {
-	int nbCles;
-	char tabCles[2 * T_MAX - 1];
-	struct noeudB *tabFils[2 * T_MAX];
-	bool feuille;
-} NoeudB;
+typedef struct s_node {
+	int n;
+	int cle[KEY_MAX];
+	bool leaf;
+	struct s_node * c[KEY_MAX + 1];
+}s_Node;
 
 
-
-
-
-struct arbreB {
-	struct noeudB *racine;
+struct s_tree {
+	int size;
+	struct s_node * root;
 };
-
-
-
-
-
-ArbreB arbreB_creer() {
-	ArbreB arbre = malloc(sizeof(struct arbreB));
-	
-	if (arbre == NULL)
-	{
-		fprintf(stderr,"Allocation impossible");
-		exit(EXIT_FAILURE);
-	}
-	
-	arbre->racine = malloc(sizeof(struct noeudB));
-	
-	
-	if (arbre->racine == NULL)
-	{
-		fprintf(stderr,"Allocation impossible");
-		exit(EXIT_FAILURE);
-	}
-	
-	arbre->racine->nbCles = 0;
-	
-	for (int i = 0; i < (2 * T_MAX + 1); i++)
-		arbre->racine->tabFils[i] = NULL;
-	
-	arbre->racine->feuille = true;
-	
-	return arbre;
-}
-
-
 
 
 /**
  * Determine si un caractere est present dans l'arborescence d'un arbre ayant pour racine le noeud en parametre
  * @pre: le noeud parcouru existe
  */
-static bool noeudB_rechercher(NoeudB *noeud, char value) {
-	assert(noeud != NULL);
-	
+static int node_search(s_Node * x, int e) {
+	assert(x != NULL);
 	int i;
 	
-	for (i = 0; i < noeud->nbCles && value > noeud->tabCles[i]; i++) {
+	for (i = 0; i < x->n && e > x->cle[i]; i++) {}
+	
+	if (i < x->n && e == x->cle[i])
+		return i;
+	if (x->leaf)
+		return -1;
+	else
+		return node_search(x->c[i],e);
+}
+
+
+bool tree_search(Tree tree, int value) {
+	assert(tree != NULL);
+	
+	return node_search(tree->root,value) > -1;
+}
+
+
+Tree tree_create() {
+	Tree tree = malloc(sizeof(struct s_tree));
+	
+	if (tree == NULL)
+	{
+		fprintf(stderr,"malloc in tree_create");
+		exit(EXIT_FAILURE);
 	}
 	
-	if (i < noeud->nbCles && value == noeud->tabCles[i])
-		return true;
+	tree->root = (struct s_node *) malloc(sizeof(struct s_node));
+	if (tree->root == NULL)
+	{
+		fprintf(stderr,"malloc in tree_create");
+		free(tree);
+		exit(EXIT_FAILURE);
+	}
 	
-	if (noeud->feuille)
-		return false;
-	else
-		return noeudB_rechercher(noeud->tabFils[i],value);
-}
-
-
-
-
-
-
-
-bool arbreB_rechercher(ArbreB arbre, char value) {
-	assert(arbre != NULL);
+	tree->root->leaf = true;
 	
-	return noeudB_rechercher(arbre->racine,value);
+	return tree;
 }
-
-
-
-
 
 
 /**
- * Determine si un noeud est plein
+ * Libere l'espace memoire alloue a un noeud
  */
-static bool noeud_plein(NoeudB *noeud) {
-	assert(noeud != NULL);
+static void node_free(s_Node * x)
+{
+	int i;
 	
-	return noeud->nbCles == 2 * T_MAX - 1;
+	if (x == NULL)
+		return;
+	
+	for (i = 0; i < x->n + 1; i++) {
+		node_free(x->c[i]);
+	}
+	
+	free(x);
 }
 
 
-
-
+void tree_free(Tree tree) {
+	assert(tree != NULL);
+	
+	node_free(tree->root);
+	free(tree);
+}
 
 
 /**
@@ -115,122 +102,98 @@ static bool noeud_plein(NoeudB *noeud) {
  * @pre: le noeud x est non plein
  * @pre: le noeud fils a partager est plein
  */
-static void noeudB_enfant_partager(NoeudB *x, int i) {
-	assert(x != NULL);
-	assert(!noeud_plein(x) && noeud_plein(x->tabFils[i]));
+static void node_child_divide(s_Node * x, int i, s_Node * y) {
+	assert(x != NULL && y != NULL);
+	assert(x->c[i] == y);
 	
-	struct noeudB *z = malloc(sizeof(struct noeudB));
-	
+	struct s_node * z = (struct s_node *) malloc(sizeof(struct s_node));
 	if (z == NULL)
 	{
-		fprintf(stderr,"Allocation Impossible");
+		fprintf(stderr,"malloc in node_child_divide");
 		exit(EXIT_FAILURE);
 	}
 	
-	struct noeudB *y = x->tabFils[i];
-	z->feuille = y->feuille;
-	z->nbCles = T_MAX - 1;
-	int j;
+	z->leaf = y->leaf;
+	z->n = K - 1;
 	
-	for (j = 0; j < T_MAX - 1; j++)
-		z->tabCles[j] = y->tabCles[j + T_MAX];
+	for (int j = 0; j < K - 1; j++)
+		z->cle[j] = y->cle[j + K];
 	
-	if (!y->feuille)
+	if (!y->leaf)
 	{
-		for (j = 0; j < T_MAX; j++)
-			z->tabFils[j] = y->tabFils[j + T_MAX];
+		for (int j = 0; j < K; j++)
+			z->c[j] = y->c[j + K];
 	}
 	
-	y->nbCles = T_MAX - 1;
+	y->n = K - 1;
 	
-	for (j = x->nbCles + 1; j >= i + 1; j--)
-		x->tabFils[j + 1] = x->tabFils[j];
+	for (int j = x->n; j >= i; j--)
+		x->c[j + 1] = x->c[j];
+	x->c[i + 1] = z;
 	
-	x->tabFils[i + 1] = z;
-	
-	for (j = x->nbCles; j >= i; j--)
-		x->tabCles[j + 1] = x->tabCles[j];
-	
-	x->tabCles[i] = y->tabCles[T_MAX];
-	x->nbCles += 1;
+	for (int j = x->n - 1; j >= i - 1; j--)
+		x->cle[j + 1] = x->cle[j];
+	x->cle[i] = y->cle[K - 1];
+	x->n += 1;
 }
 
 
-
-
-/**
- * Ajoute ......................................................
- */
-static void arbreB_incomplet_ajouter(NoeudB *x, char value) {
+static void tree_add_incomplete(s_Node * x, int e) {
 	assert(x != NULL);
 	
-	int i = x->nbCles - 1;
+	int i = x->n - 1;
 	
-	if (x->feuille)
+	if (x->leaf)
 	{
-		while (i >= 0 && value < x->tabCles[i]) {
-			x->tabCles[i + 1] = x->tabCles[i];
-			i -= 1;
-		}
+		for (; i >= 0 && e < x->cle[i]; i--)
+			x->cle[i + 1] = x->cle[i];
 		
-		x->tabCles[i + 1] = value;
-		x->nbCles += 1;
+		x->cle[i + 1] = e;
+		x->n += 1;
 	}
 	else
 	{
-		while (i >= 0 && value < x->tabCles[i])
-			i -= 1;
+		for(; i >= 0 && e < x->cle[i]; i--) {}
+		i++;
 		
-		i += 1;
-		
-		if (noeud_plein(x->tabFils[i]))
+		if (x->c[i]->n == KEY_MAX)
 		{
-			noeudB_enfant_partager(x,i);
+			node_child_divide(x,i,x->c[i]);
 			
-			if (value > x->tabCles[i])
-				i += 1;
+			if (e > x->cle[i])
+				i++;
 		}
-		
-		arbreB_incomplet_ajouter(x->tabFils[i],value);
+		tree_add_incomplete(x->c[i],e);
 	}
 }
 
 
-
-
-
-void arbreB_ajouter(ArbreB arbre, char value) {
-	assert(arbre != NULL);
+void tree_add(Tree tree, int value) {
+	assert(tree != NULL);
 	
-	if (arbreB_rechercher(arbre,value))
-		return;
+	struct s_node * r = tree->root;
 	
-	struct noeudB *r = arbre->racine;
-	
-	if (noeud_plein(r))
+	if (r->n == KEY_MAX)
 	{
-		struct noeudB *s = malloc(sizeof(struct noeudB));
-		
+		struct s_node * s = (struct s_node *) malloc(sizeof(struct s_node));
 		if (s == NULL)
 		{
-			fprintf(stderr,"Allocation Impossible");
+			fprintf(stderr,"malloc in tree_add");
 			exit(EXIT_FAILURE);
 		}
 		
-		s->feuille = false;
-		s->nbCles = 0;
-		s->tabFils[0] = r;
-		arbre->racine = s;
-		
-		noeudB_enfant_partager(s,0);
-		arbreB_incomplet_ajouter(s,value);
+		s->leaf = false;
+		s->n = 0;
+		s->c[0] = r;
+		tree->root = s;
+		node_child_divide(tree->root,0,r);
+		tree_add_incomplete(tree->root,value);
 	}
 	else
-		arbreB_incomplet_ajouter(r,value);
+		tree_add_incomplete(r,value);
+	
+	tree->size += 1;
 }
-
-
-
 
 
 /**
@@ -238,26 +201,24 @@ void arbreB_ajouter(ArbreB arbre, char value) {
  * @param fct: pointeur de fonction appliquant un traitement a chaque cle d'un noeud
  * @param user_data: donnees complementaires pour le traitement de l'arborescence
  */
-void noeudB_parcours(NoeudB *noeud, void (*fct)(char,void*), void *user_data)
+static void node_browse(s_Node * x, void (*fct)(int,void*), void *user_data)
 {
-	if (noeud == NULL)
+	if (x == NULL)
 		return;
 	
 	int i;
 	
-	for (i = 0; i < noeud->nbCles; i++) {
-		noeudB_parcours(noeud->tabFils[i],fct,user_data);
-		(*fct)(noeud->tabCles[i],user_data);
+	for (i = 0; i < x->n; i++) {
+		node_browse(x->c[i],fct,user_data);
+		(*fct)(x->cle[i],user_data);
 	}
+	
+	node_browse(x->c[i],fct,user_data);
 }
 
 
-
-
-
-
-void arbreB_parcours(ArbreB arbre, void (*fct)(char,void*), void *user_data) {
-	assert(arbre != NULL);
+void tree_browse(Tree tree, void (*fct)(int,void*), void *user_data) {
+	assert(tree != NULL);
 	
-	noeudB_parcours(arbre->racine,fct,user_data);
+	node_browse(tree->root,fct,user_data);
 }

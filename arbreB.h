@@ -7,7 +7,7 @@
  *   Types definition   *
  * -------------------- */
 
-typedef struct arbreB *ArbreB;
+typedef struct s_tree * Tree;
 
 
 
@@ -18,14 +18,14 @@ typedef struct arbreB *ArbreB;
 /**
  * Alloue la memoire pour un B-arbre et l'initialise
  */
-ArbreB arbreB_creer();
+Tree tree_create();
 
 
 
 /**
  * Ajoute un caractère dans un B-arbre
  */
-void arbreB_ajouter(ArbreB arbre, char value);
+void tree_add(Tree tree, int value);
 
 
 
@@ -38,7 +38,7 @@ void arbreB_ajouter(ArbreB arbre, char value);
 /**
  * Determine si un caractere est present dans un B-arbre
  */
-bool arbreB_rechercher(ArbreB arbre, char value);
+bool tree_search(Tree tree, int value);
 
 
 
@@ -47,7 +47,7 @@ bool arbreB_rechercher(ArbreB arbre, char value);
  * @param fct: pointeur de fonction appliquant un traitement a chaque cle d'un noeud du B-arbre
  * @param user_data: donnees complementaires pour le traitement de l'arbre
  */
-void arbreB_parcours(ArbreB arbre, void (*fct)(char,void*), void *user_data);
+void tree_browse(Tree tree, void (*fct)(int,void*), void *user_data);
 
 
 
@@ -61,7 +61,7 @@ void arbreB_parcours(ArbreB arbre, void (*fct)(char,void*), void *user_data);
 /**
  * Libere la memoire allouee a un B-arbre
  */
-void arbreB_liberer(ArbreB arbre);
+void tree_free(Tree tree);
 
 
 

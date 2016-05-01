@@ -8,7 +8,7 @@
 
 
 
-struct test_arbreB {
+struct test_tree {
 	int cur;//position courante dans le tableau
 	int size;
 	int tab[SIZE_MAX];
@@ -17,9 +17,9 @@ struct test_arbreB {
 
 
 
-void verif_arbreB(char val, void* arg)
+void verif_tree(int val, void* arg)
 {
-	struct test_arbreB *data = arg;
+	struct test_tree *data = arg;
 	if (!data->result)
 		return;
 	data->result = (data->cur < data->size && data->tab[data->cur++] == val);
@@ -29,9 +29,9 @@ void verif_arbreB(char val, void* arg)
 
 
 
-void affichage_cle(char key, void *data) {
+void print_key(int key, void *data) {
 	(void)data;
-	printf(" %c |",key);
+	printf(" %d |",key);
 }
 
 
@@ -39,25 +39,26 @@ void affichage_cle(char key, void *data) {
 
 
 
-bool test_arbreB_parcours (void) {
-	ArbreB arbre = arbreB_creer();
-	struct test_arbreB ar = {
+bool test_tree_browse (void) {
+	Tree tree = tree_create();
+	struct test_tree ar = {
 		.cur = 0,
 		.size = 5,
-		.tab = {'a', 'e', 'p', 'x', 'z'},
+		.tab = {1, 2, 3, 4, 5},
 		.result = true,
 	};
 	
-	arbreB_ajouter(arbre,'e');
-	arbreB_ajouter(arbre,'z');
-	arbreB_ajouter(arbre,'x');
-	arbreB_ajouter(arbre,'a');
-	arbreB_ajouter(arbre,'p');
+	tree_add(tree,2);
+	tree_add(tree,5);
+	tree_add(tree,1);
+	tree_add(tree,3);
+	tree_add(tree,4);
 	
 	printf("Contenu de l'arbre : |");
-	arbreB_parcours(arbre,&affichage_cle,&ar);
+	tree_browse(tree,&print_key,NULL);
 	printf("\n");
-	arbreB_parcours(arbre,&verif_arbreB,&ar);
+	tree_browse(tree,&verif_tree,&ar);
+	tree_free(tree);
 	
 	return (ar.result && ar.cur == ar.size);
 }
@@ -70,9 +71,9 @@ bool test_arbreB_parcours (void) {
 int main (void) {
 	TestSuite tst = tst_create();
 	
-	printf("\n\n-------------------------------- Test de parcours ---------------------------------\n\n"
-	"On a introduit dans le B-arbre les caracteres suivants : e, z, x, a, p\n\n");
-	test(tst,"Affichage du contenu du B-arbre dans l'ordre croissant des valeurs en parcours recursif ", test_arbreB_parcours());
+	printf("\n\n------------------------------------- Test de parcours --------------------------------------\n\n"
+	"On a introduit dans le B-arbre les valeurs suivantes : 2, 5, 1, 3, 4\n\n");
+	test(tst,"Affichage du contenu du B-arbre dans l'ordre croissant des valeurs en parcours recursif ", test_tree_browse());
 	
 	tst_results(tst);
 	tst_free(tst);
